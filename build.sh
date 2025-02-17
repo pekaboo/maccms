@@ -45,6 +45,17 @@ chmod -R 777 src/public/uploads
 chmod -R 777 src/logs
 chmod -R 777 logs
 
+echo "Creating test file..."
+echo "<?php phpinfo(); ?>" > src/public/index.php
+chmod 644 src/public/index.php
+
+echo "Setting permissions..."
+chmod -R 755 src
+find src -type f -exec chmod 644 {} \;
+find src -type d -exec chmod 755 {} \;
+chmod -R 777 src/runtime
+chmod -R 777 src/public/uploads
+
 echo "Stopping existing containers..."
 docker-compose down --remove-orphans || true
 
@@ -75,6 +86,13 @@ fi
 echo "Verifying services..."
 docker-compose exec -T php php -v || (echo "PHP service not responding" && exit 1)
 docker-compose exec -T mysql mysqladmin -u maccms -pmaccms_password ping || (echo "MySQL service not responding" && exit 1)
+
+echo "Checking Nginx configuration..."
+docker-compose exec web nginx -t
+
+echo "Checking directory permissions..."
+docker-compose exec web ls -la /var/www/html/public
+docker-compose exec php ls -la /var/www/html/public
 
 echo "Installation complete!"
 echo "Your ThinkPHP application is now available at http://localhost"
