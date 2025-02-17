@@ -10,24 +10,52 @@ handle_error() {
 
 trap 'handle_error $LINENO' ERR
 
-echo "Creating required directories..."
-mkdir -p src/runtime
-mkdir -p src/public/uploads
-mkdir -p src/logs
+# Check if running as root
+if [ "$EUID" -eq 0 ]; then
+    echo "Warning: Running as root, checking directory permissions..."
+fi
 
-echo "Setting initial permissions..."
+# Create base directories if they don't exist
+BASE_DIRS=(
+    "src/runtime"
+    "src/public/uploads"
+    "src/logs"
+    "logs/nginx"
+    "logs/php"
+    "logs/mysql"
+)
+
+for dir in "${BASE_DIRS[@]}"; do
+    if [ ! -d "$dir" ]; then
+        echo "Creating directory: $dir"
+        mkdir -p "$dir"
+    fi
+done
+
+# Set proper permissions
+echo "Setting directory permissions..."
+find src/runtime -type d -exec chmod 755 {} \;
+find src/public/uploads -type d -exec chmod 755 {} \;
+find src/logs -type d -exec chmod 755 {} \;
+find logs -type d -exec chmod 755 {} \;
+
+# Ensure write permissions for runtime directories
 chmod -R 777 src/runtime
 chmod -R 777 src/public/uploads
 chmod -R 777 src/logs
+chmod -R 777 logs
 
 echo "Stopping existing containers..."
-docker-compose down --remove-orphans
+docker-compose down --remove-orphans || true
 
 echo "Cleaning up old images..."
-docker-compose rm -f
+docker-compose rm -f || true
+
+echo "Pulling latest base images..."
+docker-compose pull
 
 echo "Building new images..."
-docker-compose build --no-cache
+COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose build --no-cache
 
 echo "Starting containers..."
 docker-compose up -d
@@ -35,6 +63,7 @@ docker-compose up -d
 echo "Waiting for services to start..."
 sleep 10
 
+# Check container health
 echo "Checking service health..."
 if ! docker-compose ps | grep -q "Up"; then
     echo "Services failed to start properly"
@@ -42,17 +71,10 @@ if ! docker-compose ps | grep -q "Up"; then
     exit 1
 fi
 
-echo "Verifying database connection..."
-if ! docker-compose exec php php -r "try {\$pdo = new PDO('mysql:host=mysql;dbname=maccms', 'maccms', 'maccms_password');} catch(PDOException \$e) {exit(1);}"
-then
-    echo "Database connection failed"
-    docker-compose logs mysql
-    exit 1
-fi
-
-echo "Checking PHP configuration..."
-docker-compose exec php php -v
-docker-compose exec php php -m
+# Verify services are responding
+echo "Verifying services..."
+docker-compose exec -T php php -v || (echo "PHP service not responding" && exit 1)
+docker-compose exec -T mysql mysqladmin -u maccms -pmaccms_password ping || (echo "MySQL service not responding" && exit 1)
 
 echo "Installation complete!"
 echo "Your ThinkPHP application is now available at http://localhost"

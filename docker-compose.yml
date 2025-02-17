@@ -1,4 +1,5 @@
-version: '3'
+name: maccms-app
+
 services:
   web:
     image: nginx:latest
@@ -9,12 +10,14 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./logs/nginx:/var/log/nginx
     depends_on:
-      - php
-      - mysql
+      php:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost"]
+      test: curl -f http://localhost/ || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
@@ -28,13 +31,14 @@ services:
       - ./src:/var/www/html
       - ./logs/php:/var/log/php
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     networks:
       - app-network
     environment:
       PHP_INI_SCAN_DIR: "/usr/local/etc/php/conf.d:/usr/local/etc/php/custom.d"
     healthcheck:
-      test: ["CMD", "php", "-v"]
+      test: php -v || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
@@ -56,7 +60,7 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "maccms", "-pmaccms_password"]
+      test: mysqladmin ping -h localhost -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
       interval: 30s
       timeout: 10s
       retries: 3
@@ -64,6 +68,7 @@ services:
 
 volumes:
   mysql_data:
+    driver: local
 
 networks:
   app-network:
