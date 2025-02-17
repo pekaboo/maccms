@@ -36,12 +36,12 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www/html
 
-# Create necessary directories and set permissions
-RUN mkdir -p /var/www/html/public \
-    && mkdir -p /var/www/html/runtime \
-    && mkdir -p /var/www/html/public/uploads \
-    && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html
+# Create necessary directories
+RUN mkdir -p /var/www/html/runtime \
+    && mkdir -p /var/www/html/upload \
+    && mkdir -p /var/www/html/static \
+    && mkdir -p /var/www/html/static_new \
+    && chown -R www-data:www-data /var/www/html
 
 # Copy existing application directory
 COPY --chown=www-data:www-data ./src /var/www/html/
@@ -53,4 +53,6 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev || true
 RUN find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html -type f -exec chmod 644 {} \; \
     && chmod -R 777 /var/www/html/runtime \
-    && chmod -R 777 /var/www/html/public/uploads
+    && chmod -R 777 /var/www/html/upload \
+    && chmod -R 777 /var/www/html/static \
+    && chmod -R 777 /var/www/html/static_new

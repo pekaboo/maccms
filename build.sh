@@ -18,8 +18,9 @@ fi
 # Create base directories if they don't exist
 BASE_DIRS=(
     "src/runtime"
-    "src/public/uploads"
-    "src/logs"
+    "src/upload"
+    "src/static"
+    "src/static_new"
     "logs/nginx"
     "logs/php"
     "logs/mysql"
@@ -35,26 +36,32 @@ done
 # Set proper permissions
 echo "Setting directory permissions..."
 find src/runtime -type d -exec chmod 755 {} \;
-find src/public/uploads -type d -exec chmod 755 {} \;
-find src/logs -type d -exec chmod 755 {} \;
+find src/upload -type d -exec chmod 755 {} \;
+find src/static -type d -exec chmod 755 {} \;
+find src/static_new -type d -exec chmod 755 {} \;
 find logs -type d -exec chmod 755 {} \;
 
 # Ensure write permissions for runtime directories
 chmod -R 777 src/runtime
-chmod -R 777 src/public/uploads
+chmod -R 777 src/upload
+chmod -R 777 src/static
+chmod -R 777 src/static_new
 chmod -R 777 src/logs
 chmod -R 777 logs
 
-echo "Creating test file..."
-echo "<?php phpinfo(); ?>" > src/public/index.php
-chmod 644 src/public/index.php
+# 删除创建测试文件的部分
+# echo "Creating test file..."
+# echo "<?php phpinfo(); ?>" > src/public/index.php
+# chmod 644 src/public/index.php
 
 echo "Setting permissions..."
 chmod -R 755 src
 find src -type f -exec chmod 644 {} \;
 find src -type d -exec chmod 755 {} \;
 chmod -R 777 src/runtime
-chmod -R 777 src/public/uploads
+chmod -R 777 src/upload
+chmod -R 777 src/static
+chmod -R 777 src/static_new
 
 echo "Stopping existing containers..."
 docker-compose down --remove-orphans || true
