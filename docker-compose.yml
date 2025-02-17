@@ -1,12 +1,10 @@
-name: maccms-app
-
 services:
   web:
     image: nginx:latest
     ports:
       - "80:80"
     volumes:
-      - ./src:/var/www/html  # 直接挂载到根目录
+      - ./src:/var/www/html
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./logs/nginx:/var/log/nginx
     depends_on:
@@ -28,7 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile
     volumes:
-      - ./src:/var/www/html  # 直接挂载到根目录
+      - ./src:/var/www/html
       - ./logs/php:/var/log/php
     depends_on:
       mysql:
