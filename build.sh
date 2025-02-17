@@ -26,6 +26,7 @@ BASE_DIRS=(
     "logs/mysql"
 )
 
+echo "Creating required directories..."
 for dir in "${BASE_DIRS[@]}"; do
     if [ ! -d "$dir" ]; then
         echo "Creating directory: $dir"
@@ -33,35 +34,28 @@ for dir in "${BASE_DIRS[@]}"; do
     fi
 done
 
-# Set proper permissions
 echo "Setting directory permissions..."
-find src/runtime -type d -exec chmod 755 {} \;
-find src/upload -type d -exec chmod 755 {} \;
-find src/static -type d -exec chmod 755 {} \;
-find src/static_new -type d -exec chmod 755 {} \;
-find logs -type d -exec chmod 755 {} \;
+# First ensure directories exist before setting permissions
+for dir in "${BASE_DIRS[@]}"; do
+    if [ -d "$dir" ]; then
+        find "$dir" -type d -exec chmod 755 {} \; 2>/dev/null || true
+    fi
+done
 
-# Ensure write permissions for runtime directories
-chmod -R 777 src/runtime
-chmod -R 777 src/upload
-chmod -R 777 src/static
-chmod -R 777 src/static_new
-chmod -R 777 src/logs
-chmod -R 777 logs
+# Set write permissions for required directories
+echo "Setting write permissions..."
+chmod -R 777 logs 2>/dev/null || true
+for dir in runtime upload static static_new; do
+    if [ -d "src/$dir" ]; then
+        chmod -R 777 "src/$dir" 2>/dev/null || true
+    fi
+done
 
-# 删除创建测试文件的部分
-# echo "Creating test file..."
-# echo "<?php phpinfo(); ?>" > src/public/index.php
-# chmod 644 src/public/index.php
-
-echo "Setting permissions..."
-chmod -R 755 src
-find src -type f -exec chmod 644 {} \;
-find src -type d -exec chmod 755 {} \;
-chmod -R 777 src/runtime
-chmod -R 777 src/upload
-chmod -R 777 src/static
-chmod -R 777 src/static_new
+echo "Setting base permissions for src directory..."
+if [ -d "src" ]; then
+    find src -type f -exec chmod 644 {} \; 2>/dev/null || true
+    find src -type d -exec chmod 755 {} \; 2>/dev/null || true
+fi
 
 echo "Stopping existing containers..."
 docker-compose down --remove-orphans || true
